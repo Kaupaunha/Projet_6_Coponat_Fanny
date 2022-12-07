@@ -15,7 +15,9 @@ exports.createSauce = (req, res, next) => {
     // spread operator "..." allow us to copy an array
     ...sauceObject,
     userId: req.auth.userId,
-    imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
+    imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`,
+    likes: 0,
+    dislikes: 0,
   });
 
   sauce.save() //save sauce into database
@@ -26,12 +28,17 @@ exports.createSauce = (req, res, next) => {
 
 
 // DISPLAY ONE SAUCE
+
 exports.getOneSauce = (req, res, next) => {
-  console.log(req.params.id);
-  Sauce.findOne({ _id: req.params.id })//get an element by its id
-  .then(sauce => res.status(200).json(sauce))
-  .catch(error => res.status(400).json({error}));
-}
+  Sauce.findOne({ _id: req.params.id })
+    .then((sauce) => {
+      res.status(200).json(sauce);
+    })
+    .catch((error) => {
+      res.status(404).json({ message: error });
+    }
+    );
+};
 
 
 // DISPLAY ALL SAUCES
@@ -40,7 +47,6 @@ exports.getAllSauce = (req, res, next) => {
     .then(sauces => res.status(200).json(sauces))
     .catch(error => res.status(400).json({ error: error }));
 };
-
 
 
 // MODIFIY SAUCE
@@ -87,3 +93,49 @@ exports.deleteSauce = (req, res, next) => {
     });
 };
 
+
+// LIKES
+
+exports.likes = (req, res, next) => {
+  // get user id, sauce id and likes
+  const userId = req.body.userId;
+  const sauceId = req.params.id;
+  const like = req.body.like;
+  
+  Sauce.findOne({_id: sauceId})
+    .then(sauce => {
+      // get likes and dislikes values
+      const values = {
+        usersLiked: sauce.usersLiked,
+        usersDisliked: sauce.usersDisliked,
+        likes: 0,
+        dislikes: 0,
+      };
+
+      switch (like) {
+        case 1: // if user likes
+        values.usersLiked.push(userId);
+          break;
+        case -1: // if user dislikes
+        values.usersDisliked.push(userId);
+          break;
+        case 0: // default value 
+          if (values.usersLiked.includes(userId)) { // if user cancel its like
+            const index = values.usersLiked.indexOf(userId);
+            values.usersLiked.splice(index, 1);
+          } else { // if user cancel its dislike
+            const index = values.usersDisliked.indexOf(userId);
+            values.usersDisliked.splice(index, 1);
+          }
+          break;
+      }
+      // likes and dislikes quantity 
+      values.likes = values.usersLiked.length;
+      values.dislikes = values.usersDisliked.length;
+      // update Sauce with new values
+      Sauce.updateOne({_id: sauceId}, values)
+        .then(() => res.status(200).json({message: "La sauce a bien été notée !"}))
+        .catch(error => res.status(400).json({error}));
+    })
+    .catch(error => res.status(500).json({error}));
+};
