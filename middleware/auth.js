@@ -14,7 +14,7 @@ module.exports = (req, res, next) => {
         // get user id using token
         const userId = decodedToken.userId;
 
-        // ?
+        // stock user id into request 
         req.auth = {
             userId: userId
         };

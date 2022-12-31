@@ -1,19 +1,28 @@
-// j'importe le schema de password
-const pwdSchema = require("../models/password");
+// to control what kind of password we accept
+const pwdValidator = require("password-validator");
 
-// je vérifie que le password respecte le schema
+const pwdSchema = new pwdValidator();
+pwdSchema
+  .is().min(8) 
+  .is().max(15) 
+  .has().uppercase() 
+  .has().lowercase() 
+  .has().digits() 
+  .has().not().spaces()
+  .has().not().symbols();
+
 module.exports = (req, res, next) => {
   // si false
   if (!pwdSchema.validate(req.body.password)) {
-    res.writeHead(
-      400,
-      "Mot de passe non valide: min 8 caractères, une majuscule, une minuscule et un chiffre, sans espace, pas de caractères spéciaux.",
-      {
-        "content-type": "application/json",
-      }
-    );
-    res.end("Le format de votre mot de passe est incorrect");
+    res.status(400).json({message: "Mot de passe non valide: min 8 caractères, une majuscule, une minuscule et un chiffre, sans espace, pas de caractères spéciaux."})
   } else {
     next();
   }
 };
+
+
+
+
+
+
+
